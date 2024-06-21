@@ -21,11 +21,14 @@ public class TravelController : ControllerBase
     [Route("{characterId:int}")]
     public async Task<IActionResult> GetCharacter(int characterId)
     {
-        
-
-        var character = await _dbService.GetCharacter(characterId);
-        if (character == null)
+        Characters character;
+        try
         {
+            character = await _dbService.GetCharacter(characterId);
+        }
+        catch (KeyNotFoundException e)
+        {
+            Console.WriteLine(e);
             return NotFound($"Character with {characterId} not found");
         }
         var backpackItems = await _dbService.GetItemsCharacter(characterId);
@@ -41,6 +44,32 @@ public class TravelController : ControllerBase
             Titles = titles
         };
         return Ok(characterDto);
+    }
+
+    [HttpPost]
+    [Route("{characterId:int}/backpacks")]
+    public async Task<IActionResult> AddItems(int characterId, List<int> itemIdList)
+    {
+        Characters character;
+        try
+        {
+            character = await _dbService.GetCharacter(characterId);
+        }
+        catch (KeyNotFoundException e)
+        {
+            Console.WriteLine(e);
+            return NotFound($"Character with {characterId} not found");
+        }
+
+        var totalWeight = await _dbService.GetTotalWeight(itemIdList);
+        if (character.CurrentWeight + totalWeight > character.MaxWeight)
+        {
+            return BadRequest("Character cannot carry the added weight");
+        }
+
+        await _dbService.AddItemsCharacter(characterId, itemIdList);
+
+        return Ok("Items added to character's backpack");
     }
     
 }

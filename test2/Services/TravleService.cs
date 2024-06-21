@@ -20,7 +20,7 @@ public class TravelService : ITravelService
         
         Characters? character =
         await _applicationContext.Characters.FirstAsync(e => e.Id == characterId);
-        if (character.Equals(null))
+        if (character == null)
         {
             throw new KeyNotFoundException($"Character with {characterId} not found");
         }
@@ -74,7 +74,21 @@ public class TravelService : ITravelService
 
     public async Task AddItemsCharacter(int characterId, List<int> itemIdList)
     {
-        Characters character = await GetCharacter(characterId) ?? throw new KeyNotFoundException($"Character with {characterId} not found");
-        
+        var character = await _applicationContext.Characters.FindAsync(characterId);
+        if (character == null) throw new ArgumentException("Character not found");
+
+        var backpackItems = itemIdList.Select(itemId => new Backpacks
+        {
+            CharacterId = characterId,
+            ItemId = itemId,
+            Amount = 1
+        }).ToList();
+
+        _applicationContext.Backpacks.AddRange(backpackItems);
+
+        var totalWeight = await GetTotalWeight(itemIdList);
+   
+
+        await _applicationContext.SaveChangesAsync();
     }
 }
